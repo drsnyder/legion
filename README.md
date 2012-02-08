@@ -1,7 +1,7 @@
 # Legion
 
-Simple tool for running a procedure N times in T threads (using pmap). The motivation for this was
-quick and easy testing / tinkering with different locking / concurrency features in
+Simple tool for running a procedure N times in T threads (using pmap). The motivation for 
+this was quick and easy tinkering with different locking / concurrency features in
 postgresql. I could also see this being used as a simple load tester for a web site,
 database, or server.
 
