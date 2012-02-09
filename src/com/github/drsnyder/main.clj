@@ -8,11 +8,16 @@
     (when-let [fun (ns-resolve *ns* (symbol command))]
       (deploy threads calls fun args)))
 
+(defn process-results [command results]
+    (when-let [fun (ns-resolve *ns* (symbol command))]
+      (fun results)))
+
 (defn -main [& args]
   (let [[options args banner] (cli args ["-c" "--command" :default nil]
                                         ["-f" "--command-file" :default "legionfile"]
                                         ["-t" "--threads" :default 1 :parse-fn #(Integer. %)]
                                         ["-n" "--calls"   :default 1 :parse-fn #(Integer. %)]
+                                        ["-p" "--post-process" :default nil]
                                         ["-h" "--help" "Show help" :default false :flag true])]
     (when (:help options)
       (println banner)
@@ -22,5 +27,7 @@
       (load-file (:command-file options))
       (println "deploying " (:command options))
       (let [ret (deploy-command (:threads options) (:calls options) (:command options))]
-        (println ret))
+        (if (and ret (:post-process options))
+          (process-results (:post-process options) ret)
+          (println ret)))
       (System/exit 0))))

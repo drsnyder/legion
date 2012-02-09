@@ -1,14 +1,33 @@
 
 (defn test [& args] (str "success " args))
 
+; setup 
+; create table max_test ( id serial not null, value integer not null default 0 );
+; export DATABASE_URL=postgresql://user@dbhost:5432/db
+;
 (defn query [& args]
  (clojure.java.jdbc/with-connection (System/getenv "DATABASE_URL")
   (clojure.java.jdbc/with-query-results results
    ["select * from max_test limit 1"]
    (into [] results))))
 
-; setup 
-; export DATABASE_URL=postgresql://user@dbhost:5432/db
+(defn setmax_txn [& args]
+ (clojure.java.jdbc/with-connection (System/getenv "DATABASE_URL")
+    (clojure.java.jdbc/transaction
+      (clojure.java.jdbc/do-commands
+        "UPDATE max_test SET value = (SELECT MAX(value) + 1 FROM max_test)")
+      (clojure.java.jdbc/with-query-results results
+                                            ["select MAX(value) from max_test limit 1"]
+                                            (into [] results)))))
+
+(defn setmax_update [& args]
+ (clojure.java.jdbc/with-connection (System/getenv "DATABASE_URL")
+    (clojure.java.jdbc/do-commands
+      "UPDATE max_test SET value = value + 1 WHERE id = 1")
+    (clojure.java.jdbc/with-query-results results
+                                          ["select MAX(value) from max_test limit 1"]
+                                          (into [] results))))
+
 (defn setmax [& args]
  (clojure.java.jdbc/with-connection (System/getenv "DATABASE_URL")
 	(clojure.java.jdbc/do-commands
@@ -16,3 +35,23 @@
 	(clojure.java.jdbc/with-query-results results
 	 ["select MAX(value) from max_test limit 1"]
 	 (into [] results))))
+
+(defn insert_max [& args]
+ (clojure.java.jdbc/with-connection (System/getenv "DATABASE_URL")
+	(clojure.java.jdbc/do-commands
+		"INSERT INTO max_test (value) VALUES ((SELECT MAX(value) + 1 FROM max_test))")
+	(clojure.java.jdbc/with-query-results results
+	 ["select MAX(value) from max_test limit 1"]
+	 (into [] results))))
+
+(defn setmax_sfu [& args]
+ (clojure.java.jdbc/with-connection (System/getenv "DATABASE_URL")
+	(clojure.java.jdbc/do-commands
+		"UPDATE max_test SET value = (SELECT MAX(value) + 1 FROM max_test FOR UPDATE)")
+	(clojure.java.jdbc/with-query-results results
+	 ["select MAX(value) from max_test limit 1"]
+	 (into [] results))))
+
+(defn find-max [results]
+  (let [m (apply max (map #(:max %) (flatten results)))]
+    (println "Max value is" m)))
